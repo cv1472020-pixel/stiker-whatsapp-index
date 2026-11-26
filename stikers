@@ -1,0 +1,167 @@
+const C='sticker-pop-v1',F=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!=C).map(n=>caches.delete(n)))).then(()=>clients.claim())));
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const u=new URL(e.request.url);if(u.origin===location.origin){const c=r.clone();caches.open(C).then(x=>x.put(e.request,c))}return r}).catch(()=>caches.match(e.request).then(m=>m||caches.match('index.html'))))});
+
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Sticker Pop</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffe45e"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ffe45e;--pn:#fff;--ink:#1b1340;--ac:#ff4f8b;--mt:#3ddc97;--ln:#1b1340;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1340;--pn:#2a2063;--ink:#fff6d6;--ln:#fff6d6}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 "Baloo 2",system-ui,sans-serif}
+main{max-width:880px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:760px){main{grid-template-columns:360px 1fr}h1,.tray{grid-column:1/-1}}
+h1{margin:0;font-weight:800;font-size:clamp(34px,7vw,56px);line-height:1;letter-spacing:-.02em}
+h1 small{display:block;font-size:16px;font-weight:500;letter-spacing:0;margin-top:6px}
+.card{background:var(--pn);border:3px solid var(--ln);border-radius:22px;padding:14px;box-shadow:5px 5px 0 var(--ln)}
+.stage{display:flex;flex-direction:column;align-items:center;gap:10px}
+canvas{width:100%;max-width:320px;aspect-ratio:1;border-radius:18px;border:3px dashed var(--ln);background:repeating-conic-gradient(#0000000f 0 25%,#0000 0 50%) 0 0/24px 24px}
+label{display:block;font-weight:700;font-size:14px;margin:10px 0 4px}
+input,select,button{font:inherit;color:inherit}
+input[type=text],select{width:100%;padding:8px 10px;border-radius:12px;border:2px solid var(--ln);background:var(--pn)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+button{cursor:pointer;font-weight:700;padding:10px 14px;border-radius:14px;border:3px solid var(--ln);background:var(--pn);box-shadow:3px 3px 0 var(--ln);transition:transform .08s,box-shadow .08s}
+button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ln)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.go{background:var(--ac);color:#fff}.alt{background:var(--mt);color:#1b1340}
+#st{font-size:14px;min-height:20px;margin:8px 0 0}
+.note{font-size:13px;opacity:.85;margin:10px 0 0}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.it{border:3px solid var(--ln);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:6px;align-items:center;background:var(--pn)}
+.it img,.it video{width:100%;aspect-ratio:1;object-fit:contain;border-radius:10px;background:repeating-conic-gradient(#0000000f 0 25%,#0000 0 50%) 0 0/16px 16px}
+.it button{padding:5px 8px;font-size:13px;box-shadow:2px 2px 0 var(--ln);flex:1}
+.empty{opacity:.8}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
+</style></head><body><main>
+<h1>Sticker Pop<small>Crea stickers animados para WhatsApp, con sonido en video.</small></h1>
+<section class="card stage"><canvas id="cv" width="512" height="512"></canvas>
+<div class="row" style="width:100%"><button id="pl" type="button">Probar sonido</button></div></section>
+<section class="card">
+<label for="em">Emoji o personaje</label><input type="text" id="em" value="😎" maxlength="4">
+<label for="fi">O sube una foto, imagen, GIF o video de tus archivos</label><input type="file" id="fi" accept="image/*,video/*">
+<label for="sh">Forma de la foto o video</label><select id="sh"><option value="circle">Círculo</option><option value="round">Cuadrado redondeado</option><option value="none">Tal cual</option></select>
+<label for="tt">Texto (opcional)</label><input type="text" id="tt" maxlength="18" placeholder="¡Qué buena!">
+<div class="row"><div><label for="an">Animación</label><select id="an"><option value="none">Sin efecto (movimiento propio del video/GIF)</option><option value="bounce" selected>Rebote</option><option value="spin">Giro</option><option value="shake">Temblor</option><option value="pulse">Latido</option><option value="wobble">Balanceo</option><option value="flip">Voltereta</option></select></div>
+<div><label for="so">Sonido</label><select id="so"><option value="none">Sin sonido</option><option value="boing">Boing</option><option value="pop">Pop</option><option value="magic">Magia</option><option value="uau">Uau</option><option value="file">Mi archivo de audio</option><option value="mic">Grabar con micrófono</option></select></div></div>
+<input type="file" id="af" accept="audio/*" hidden><button id="rc" type="button" hidden style="width:100%;margin-top:8px">Grabar 3 segundos</button>
+<label for="du">Duración: <span id="dv">2</span> s</label><input type="range" id="du" min="1" max="6" step=".5" value="2">
+<div class="row" style="margin-top:14px"><button class="go" id="mk" type="button">Crear sticker WebP</button><button class="alt" id="mv" type="button">Grabar video con sonido</button><button id="wv" type="button">Bajar audio (WAV)</button></div>
+<p id="st" role="status"></p>
+<p class="note">WhatsApp ya está activando stickers con audio (despliegue gradual). El audio se agrega dentro del editor de WhatsApp: aquí crea el sticker y baja el audio (máx. 10 s), o graba el video con sonido (WhatsApp conserva hasta 5 s).</p>
+</section>
+<section class="card tray"><label style="margin-top:0">Mi bandeja</label><div class="row"><input type="text" id="pn" placeholder="Nombre del paquete" maxlength="40" aria-label="Nombre del paquete"><input type="text" id="pa" placeholder="Autor" maxlength="40" aria-label="Autor"></div><div class="row" style="margin-top:8px"><button class="alt" id="pk" type="button">Exportar paquete para WhatsApp (.wastickers)</button><button id="ap" type="button">Proyecto para Android Studio (.zip)</button></div><p class="note">“Compartir” envía el archivo como imagen. Para que WhatsApp lo reciba como sticker, exporta el paquete (mínimo 3 stickers WebP) y ábrelo con la app Sticker Maker.</p><div class="items" id="tr"><p class="empty" id="em0">Aún no hay stickers. Crea el primero y se agrega aquí.</p></div></section>
+</main>
+<script>
+const $=i=>document.getElementById(i),cv=$('cv'),x=cv.getContext('2d');
+let img=null,D=2,ac,dest,buf=null,t0=performance.now();
+const ctx=()=>{if(!ac){ac=new(window.AudioContext||window.webkitAudioContext)();dest=ac.createMediaStreamDestination()}if(ac.state=='suspended')ac.resume()};
+function draw(t){const p=(t%D)/D,k=2*Math.PI*p;let tx=0,ty=0,r=0,sx=1,sy=1;const A=$('an').value;
+if(A=='none');else if(A=='bounce'){ty=45-Math.abs(Math.sin(k/2))*90;sy=1+.08*Math.cos(k)}
+else if(A=='spin')r=k;else if(A=='shake')tx=Math.sin(k*6)*22;
+else if(A=='pulse')sx=sy=1+.15*Math.sin(k);else if(A=='wobble')r=Math.sin(k)*.28;else sx=Math.cos(k);
+x.clearRect(0,0,512,512);x.save();x.translate(256+tx,230+ty);x.rotate(r);x.scale(sx,sy);
+if(img){const S=img.fs?(img.fs.findLast(o=>o.t<=t%img.tot)||img.fs[0]).b:img,w=S.displayWidth||S.videoWidth||S.width,h=S.displayHeight||S.videoHeight||S.height,sh=$('sh').value;if(sh=='none'){const s=Math.min(440/w,440/h);x.drawImage(S,-w*s/2,-h*s/2,w*s,h*s)}else{x.beginPath();if(sh=='circle')x.arc(0,0,220,0,Math.PI*2);else x.roundRect(-220,-220,440,440,60);x.clip();const s=Math.max(440/w,440/h);x.drawImage(S,-w*s/2,-h*s/2,w*s,h*s)}}
+else{x.font='300px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText($('em').value||'😎',0,0)}
+x.restore();const T=$('tt').value;if(T){x.font='800 64px "Baloo 2",sans-serif';x.textAlign='center';x.textBaseline='alphabetic';x.lineJoin='round';x.lineWidth=14;x.strokeStyle='#1b1340';x.strokeText(T,256,480,480);x.fillStyle='#fff';x.fillText(T,256,480,480)}}
+(function loop(){draw((performance.now()-t0)/1000);requestAnimationFrame(loop)})();
+const mkb=(d,f)=>{const b=ac.createBuffer(1,44100*d|0,44100),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=f(i/44100);return b};
+const PI2=2*Math.PI,SFX={boing:()=>mkb(.7,t=>.5*Math.exp(-3*t)*Math.sin(PI2*(200*t+50*(1-Math.exp(-6*t))+8*Math.sin(t*40)))),
+pop:()=>mkb(.2,t=>(Math.random()*2-1)*.4*Math.exp(-t*45)+.5*Math.exp(-t*30)*Math.sin(PI2*500*t)),
+magic:()=>mkb(.6,t=>{const n=[523,659,784,1047][Math.min(3,t/.13|0)],l=t%.13;return .35*Math.exp(-l*10)*Math.sin(PI2*n*t)}),
+uau:()=>mkb(.6,t=>.4*Math.sin(PI2*(300*t+500*t*t/1.2))*Math.sin(Math.PI*t/.6))};
+function sound(){const s=$('so').value;ctx();let b=s=='file'||s=='mic'?buf:SFX[s]&&SFX[s]();if(!b)return;const n=ac.createBufferSource();n.buffer=b;n.connect(ac.destination);n.connect(dest);n.start()}
+$('pl').onclick=()=>{t0=performance.now();if(img&&img.play)img.currentTime=0;sound()};
+$('du').oninput=e=>{D=+e.target.value;$('dv').textContent=D};
+$('fi').onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);
+if(f.type.startsWith('video')){const v=document.createElement('video');v.muted=v.loop=v.playsInline=true;v.onloadeddata=()=>{img=v;v.play();setD(Math.min(6,v.duration));dec(f).then(()=>{$('so').value='file'}).catch(()=>$('st').textContent='Video cargado, pero no se pudo leer su audio.')};v.src=u}
+else if(f.type=='image/gif'&&window.ImageDecoder){gif(f).then(g=>{img=g;setD(g.tot)}).catch(()=>{const i=new Image();i.onload=()=>{img=i;$('an').value='none'};i.src=u})}
+else{const i=new Image();i.onload=()=>{img=i;$('an').value='none'};i.src=u}};
+const setD=d=>{D=Math.max(.5,d);$('du').value=D;$('dv').textContent=D.toFixed(1);$('an').value='none'};
+async function gif(f){const d=new ImageDecoder({data:await f.arrayBuffer(),type:'image/gif'});await d.tracks.ready;const n=d.tracks.selectedTrack.frameCount,fs=[];let tot=0;for(let i=0;i<n;i++){const r=await d.decode({frameIndex:i});fs.push({b:r.image,t:tot});tot+=(r.image.duration||100000)/1e6}return{fs,tot}}
+const seek=(v,t)=>new Promise(r=>{v.pause();v.onseeked=r;v.currentTime=t%(v.duration||1)});
+$('em').oninput=()=>img=null;
+const dec=async b=>{ctx();buf=await ac.decodeAudioData(await b.arrayBuffer());$('st').textContent='Audio listo.'};
+$('so').onchange=e=>{const v=e.target.value;$('rc').hidden=v!='mic';if(v=='file')$('af').click()};
+$('af').onchange=e=>e.target.files[0]&&dec(e.target.files[0]).catch(()=>$('st').textContent='No se pudo leer ese audio. Prueba con MP3 o WAV.');
+$('rc').onclick=async()=>{try{const s=await navigator.mediaDevices.getUserMedia({audio:true}),m=new MediaRecorder(s),c=[];m.ondataavailable=e=>c.push(e.data);m.onstop=()=>{s.getTracks().forEach(t=>t.stop());dec(new Blob(c))};m.start();$('st').textContent='Grabando…';setTimeout(()=>m.stop(),3000)}catch(e){$('st').textContent='No hay acceso al micrófono. Revisa el permiso del navegador.'}};
+// --- WebP animado ---
+const le=(n,b)=>{const a=new Uint8Array(b);for(let i=0;i<b;i++)a[i]=n>>>(8*i)&255;return a},tag=s=>new Uint8Array([...s].map(c=>c.charCodeAt(0))),
+cat=a=>{const o=new Uint8Array(a.reduce((s,y)=>s+y.length,0));let p=0;a.forEach(y=>{o.set(y,p);p+=y.length});return o},
+ck=(t,d)=>cat([tag(t),le(d.length,4),d,new Uint8Array(d.length&1)]);
+function mux(fr,ms){const vx=ck('VP8X',cat([new Uint8Array([18]),le(0,3),le(511,3),le(511,3)])),an=ck('ANIM',cat([le(0,4),le(0,2)])),
+F=fr.map(f=>{const dv=new DataView(f.buffer);let p=12,parts=[];while(p<f.length){const z=dv.getUint32(p+4,true),t=String.fromCharCode(...f.slice(p,p+4)),e=p+8+z+(z&1);if(t!='VP8X')parts.push(f.slice(p,e));p=e}
+return ck('ANMF',cat([le(0,3),le(0,3),le(511,3),le(511,3),le(ms,3),new Uint8Array([3]),...parts]))}),
+pl=cat([tag('WEBP'),vx,an,...F]);return new Blob([cat([tag('RIFF'),le(pl.length,4),pl])],{type:'image/webp'})}
+const blob=q=>new Promise(r=>cv.toBlob(r,'image/webp',q));
+$('mk').onclick=async()=>{const b=$('mk');b.disabled=true;try{
+for(const[fps,q]of[[15,.8],[12,.65],[10,.5],[8,.4],[6,.3]]){const n=Math.round(fps*D),fr=[];
+for(let i=0;i<n;i++){$('st').textContent=`Creando… ${fps} fps, calidad ${Math.round(q*100)}`;if(img&&img.videoWidth)await seek(img,i/n*D);draw(i/n*D);{const bl=await blob(q);if(bl.type!='image/webp')throw 0;fr.push(new Uint8Array(await bl.arrayBuffer()))}}
+const w=mux(fr,Math.round(1000/fps));if(w.size<=5e5||q==.3){add({webp:w});$('st').textContent=`Listo: ${Math.round(w.size/1024)} KB${w.size>5e5?' (pasa de 500 KB; reduce la duración)':''}.`;break}}
+}catch(e){$('st').textContent='Tu navegador no pudo crear el WebP. Prueba en Chrome o Edge.'}b.disabled=false;if(img&&img.play)img.play()};
+$('mv').onclick=()=>{try{ctx();const mt=['video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t)),
+s=new MediaStream([...cv.captureStream(30).getVideoTracks(),...dest.stream.getAudioTracks()]),m=new MediaRecorder(s,{mimeType:mt}),c=[];
+m.ondataavailable=e=>c.push(e.data);m.onstop=()=>{add({vid:new Blob(c,{type:mt.split(';')[0]})});$('st').textContent='Video listo.'};
+t0=performance.now();if(img&&img.play)img.currentTime=0;m.start();sound();$('st').textContent='Grabando video…';setTimeout(()=>m.stop(),D*1000+100)}catch(e){$('st').textContent='Tu navegador no puede grabar video. Prueba en Chrome.'}};
+// --- Bandeja ---
+function add(o){if(o.webp)P.push(o.webp);const b=o.webp||o.vid,u=URL.createObjectURL(b),ext=o.webp?'webp':b.type.includes('mp4')?'mp4':'webm',nm=`sticker-${Date.now()}.${ext}`;
+$('em0')?.remove();const d=document.createElement('div');d.className='it';
+d.innerHTML=o.webp?`<img src="${u}" alt="Sticker animado">`:`<video src="${u}" autoplay loop muted playsinline controls></video>`;
+const r=document.createElement('div');r.className='row';r.style.width='100%';
+const sh=document.createElement('button');sh.textContent='Compartir';sh.onclick=async()=>{const f=new File([b],nm,{type:b.type});if(navigator.canShare&&navigator.canShare({files:[f]}))try{await navigator.share({files:[f]})}catch(e){}else dl()};
+const dw=document.createElement('button');dw.textContent='Bajar';const dl=dw.onclick=()=>{const a=document.createElement('a');a.href=u;a.download=nm;a.click()};
+const rm=document.createElement('button');rm.textContent='Quitar';rm.onclick=()=>{d.remove();const i=P.indexOf(o.webp);if(i>-1)P.splice(i,1)};
+r.append(sh,dw,rm);d.append(r);$('tr').prepend(d)}
+$('wv').onclick=()=>{ctx();const s=$('so').value,b=s=='file'||s=='mic'?buf:SFX[s]&&SFX[s]();if(!b){$('st').textContent='Elige un sonido primero.';return}
+const n=Math.min(b.length,b.sampleRate*10),ch=b.getChannelData(0),o=new DataView(new ArrayBuffer(44+n*2)),w=(p,t)=>[...t].forEach((c,i)=>o.setUint8(p+i,c.charCodeAt(0)));
+w(0,'RIFF');o.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');o.setUint32(16,16,true);o.setUint16(20,1,true);o.setUint16(22,1,true);o.setUint32(24,b.sampleRate,true);o.setUint32(28,b.sampleRate*2,true);o.setUint16(32,2,true);o.setUint16(34,16,true);w(36,'data');o.setUint32(40,n*2,true);
+for(let i=0;i<n;i++)o.setInt16(44+i*2,Math.max(-1,Math.min(1,ch[i]))*32767,true);
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([o],{type:'audio/wav'}));a.download='sonido-sticker.wav';a.click();$('st').textContent=b.duration>10?'Audio recortado a 10 s.':'Audio descargado.'};
+const P=[],crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})(),crc=d=>{let c=-1;for(let i=0;i<d.length;i++)c=crcT[(c^d[i])&255]^(c>>>8);return(c^-1)>>>0};
+function zip(fs){const L=[],C=[];let off=0;for(const f of fs){const nm=new TextEncoder().encode(f.n),c=crc(f.d),n=f.d.length,h=cat([le(0x04034b50,4),le(20,2),le(0,2),le(0,2),le(0,2),le(0x21,2),le(c,4),le(n,4),le(n,4),le(nm.length,2),le(0,2),nm]);L.push(h,f.d);C.push(cat([le(0x02014b50,4),le(20,2),le(20,2),le(0,2),le(0,2),le(0,2),le(0x21,2),le(c,4),le(n,4),le(n,4),le(nm.length,2),le(0,2),le(0,2),le(0,2),le(0,2),le(0,4),le(off,4),nm]));off+=h.length+n}
+const cd=cat(C);return new Blob([...L,cd,cat([le(0x06054b50,4),le(0,2),le(0,2),le(fs.length,2),le(fs.length,2),le(cd.length,4),le(off,4),le(0,2)])],{type:'application/octet-stream'})}
+$('ap').onclick=async()=>{if(P.length<3||P.length>30){$('st').textContent='El paquete necesita entre 3 y 30 stickers WebP (ahora hay '+P.length+').';return}
+try{const te=new TextEncoder(),tc=document.createElement('canvas');tc.width=tc.height=96;tc.getContext('2d').drawImage(await createImageBitmap(P[0]),0,0,96,96);
+const nm=$('pn').value||'Mis stickers',au=$('pa').value||'Sticker Pop',
+cj={android_play_store_link:'',ios_app_store_link:'',sticker_packs:[{identifier:'1',name:nm,publisher:au,tray_image_file:'tray.png',image_data_version:'1',avoid_cache:false,publisher_email:'',publisher_website:'',privacy_policy_website:'',license_agreement_website:'',animated_sticker_pack:true,stickers:P.map((_,i)=>({image_file:`sticker_${i+1}.webp`,emojis:['😀']}))}]},
+rd='Copia la carpeta assets dentro de SampleStickerApp/app/src/main/assets (reemplaza contents.json y la carpeta 1). Cambia applicationId en build.gradle, el nombre en strings.xml y el icono. No uses la palabra WhatsApp en el nombre de la app. Compila e instala en tu teléfono. Fuente: github.com/WhatsApp/stickers (Android).',
+fs=[{n:'assets/contents.json',d:te.encode(JSON.stringify(cj,null,2))},{n:'assets/1/tray.png',d:new Uint8Array(await(await new Promise(r=>tc.toBlob(r))).arrayBuffer())},{n:'LEEME.txt',d:te.encode(rd)}];
+for(const[i,b]of P.entries())fs.push({n:`assets/1/sticker_${i+1}.webp`,d:new Uint8Array(await b.arrayBuffer())});
+const z=zip(fs),a=document.createElement('a');a.href=URL.createObjectURL(z);a.download='proyecto-stickers-android.zip';a.click();
+$('st').textContent=P.some(b=>b.size>5e5)?'Descargado, pero algún sticker pasa de 500 KB y WhatsApp lo rechazará. Reduce la duración.':'Proyecto descargado: proyecto-stickers-android.zip.'}catch(e){$('st').textContent='No se pudo crear el proyecto.'}};
+$('pk').onclick=async()=>{if(P.length<3){$('st').textContent='WhatsApp pide al menos 3 stickers por paquete. Crea más WebP.';return}
+try{const t=Math.floor(Date.now()/1e3),te=new TextEncoder(),tc=document.createElement('canvas');tc.width=tc.height=96;tc.getContext('2d').drawImage(await createImageBitmap(P[0]),0,0,96,96);
+const fs=[{n:'author.txt',d:te.encode('Sticker Pop')},{n:'title.txt',d:te.encode('Mis stickers')},{n:t+'.png',d:new Uint8Array(await(await new Promise(r=>tc.toBlob(r))).arrayBuffer())}];
+for(const[i,b]of P.entries())fs.push({n:(t+i+1)+'.webp',d:new Uint8Array(await b.arrayBuffer())});
+const z=zip(fs);
+const a=document.createElement('a');a.href=URL.createObjectURL(z);a.download='mis-stickers.wastickers';a.click();$('st').textContent='Paquete descargado: mis-stickers.wastickers. Búscalo en Descargas, ábrelo con Sticker Maker y toca “Añadir a WhatsApp”.'}catch(e){$('st').textContent='No se pudo crear el paquete.'}};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
+
+{
+ "name": "Sticker Pop",
+ "short_name": "Sticker Pop",
+ "description": "Crea stickers animados para WhatsApp",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ffe45e",
+ "theme_color": "#ffe45e",
+ "lang": "es",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any maskable"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
